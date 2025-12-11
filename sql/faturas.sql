@@ -1,5 +1,5 @@
 -- relatório de faturas (17/10/2024)
-select
+select distinct
 cat.nome as associado,
 ir.id as matricula,
 irs.id as conjunto,
@@ -46,12 +46,13 @@ left outer join (
 	where tb.historico not in(1,5)
 	group by tb.ponteiro
 ) as bx on bx.ponteiro = t.ponteiro
+where cast(bx.data_baixa as date) >= date('2025-01-01')
     
 --------------------------------------------------------------------------------------------------
 UNION ALL
 --------------------------------------------------------------------------------------------------
 
-select
+select distinct
 cat.nome as associado,
 ir.id as matricula,
 irs.id as conjunto,
@@ -98,12 +99,13 @@ left outer join (
 	where tb.historico not in(1,5)
 	group by tb.ponteiro
 ) as bx on bx.ponteiro = t.ponteiro
+where cast(bx.data_baixa as date) >= date('2025-01-01')
 
 --------------------------------------------------------------------------------------------------
 UNION ALL
 --------------------------------------------------------------------------------------------------
 
-select
+select distinct
 cat.nome as associado,
 ir.id as matricula,
 irs.id as conjunto,
@@ -150,12 +152,13 @@ left outer join (
 	where tb.historico not in(1,5)
 	group by tb.ponteiro
 ) as bx on bx.ponteiro = t.ponteiro
+where cast(bx.data_baixa as date) >= date('2025-01-01')
     	
 --------------------------------------------------------------------------------------------------
 UNION ALL
 --------------------------------------------------------------------------------------------------
 
-select
+select distinct
 cat.nome as associado,
 ir.id as matricula,
 irs.id as conjunto,
@@ -202,5 +205,4 @@ left outer join (
 	where tb.historico not in(1,5)
 	group by tb.ponteiro
 ) as bx on bx.ponteiro = t.ponteiro
-
 where cast(bx.data_baixa as date) >= date('2025-08-01')

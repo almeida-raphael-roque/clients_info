@@ -1,51 +1,77 @@
---------------------------------------------------------------------------------------------------
-UNION ALL
---------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
+union all
+--------------------------------------------------------------------------------------
 
-select
-cat.nome as associado,
-ir.id as matricula,
-irs.id as conjunto,
-cata.fantasia as unidade,
-v.descricao as consultor,
-t.ponteiro as idtitlemoviment,
-t.data_vencimento as data_vencimento,
-a.descricao as aplicacao_fin,
-(t.valor_titulo_movimento + t.valor_acrescimo - t.valor_desconto) as valuetitle,
-case 
-	when t.ponteiro_consolidado > 0 then 'consolidado'
-	when ii.situation = 'C' or (bx.entra_fluxo_caixa <> 'S') then 'cancelado'
-	when coalesce(bx.valor_baixa,0) <= 0 then 'aberto'
-	when coalesce(bx.valor_baixa,0) >= (t.valor_titulo_movimento + t.valor_acrescimo - t.valor_desconto) then 'pago'
-	else 'pago parcialmente' 
-end situationdescription,
-cast(bx.data_baixa as date) as data_baixa,
-bx.valor_baixa as valor_baixa,
-t.referencia,
-'Tag' as cooperativa,
-round(((bx.valor_baixa * a.taxa_comissao) / 100),2) as comissao
+select distinct 
+   
+    ide.number_event as "numero_evento",
+	-- DATA DO EVENTO DANOSO
+	cast(ide.date_event as date) as "data_evento",
+	-- ID MONTA
+	idr.size_mount as "id_monta",
+	-- MONTA
+	case
+		idr.size_mount
+		when 0 then 'Sem Monta' -- COLUNA COM DESCRITIVO DE CADA TIPO DE MONTA
+		when 1 then 'Sem Monta'
+		when 2 then 'Pequena Monta'
+		when 3 then 'Média Monta'
+		when 4 then 'Grande Monta' else 'Sem Monta'
+	end as "monta",
+	cat.nome as "cooperado",
+	case
+		ide.id_kind_event
+		when 6 then 'Furto'
+		when 7 then 'Roubo'
+		when 8 then 'Suspeita de Furto/Roubo'
+		when 9 then 'Apropiacao Indebita'
+		when 13 then 'Tentativa de Furto/Roubo' else 'SEM TIPO'
+	end as "tipo_de_sinistro",
+	-- CONJUNTO 
+	coalesce(
+		cast(idr.regset as varchar),
+		cast(ide.id_set as varchar)
+	) as "conjunto",
+	-- MATRICULA
+	ide.id_registration as "matricula",
+	-- ABRIU CASCO
+	coalesce(ide.open_hull, 'N') as "casco",
+	-- ABRIU TERCEIRO 
+	coalesce(ide.open_third, 'N') as "terceiro",
+	-- ID_TIPO_EVENTO
+	ide.id_kind_event as "id_tipo_evento",
+	-- VALOR CASC0
+	coalesce(ide.ammount_hull, 0) as "valor_casco",
+	-- VALOR TERCEIRO
+	coalesce(ide.ammount_third, 0) as "valor_terceiro",
+	-- VALOR TOTAL
+	coalesce(ide.ammount, 0) as "valor_total",
+	-- UNIDADE 
+	cata.fantasia as "unidade",
+	-- ID STATUS
+	case
+		when ide.id_status = 0 then ide.id_status_third else ide.id_status
+	end as "id_status_evento",
+	-- STATUS DO EVENTO
+	coalesce(iss.description, isss.description) as "status_evento",
+    -- CIDADE
+	coalesce(cid.nome, 'Sem Cidade') as "cidade_evento",
+	-- UF 
+	coalesce(cid.uf, 'Sem UF') as "uf_evento",
+	-- NOME DO MOTORISTA
+	coalesce(ide.driver_name, 'SEM MOTORISTA') as "nome_motorista",
+	'tag' as "cooperativa"
+	
+	
+from tag.insurance_dam_event ide
+	left outer join tag.insurance_dam_event_reference idr on idr.parent = ide.id
+	left outer join tag.representante r on r.codigo = ide.id_unity
+	left outer join tag.catalogo cata on cata.cnpj_cpf = r.cnpj_cpf
+	left outer join tag.cliente clie on clie.codigo = ide.customer_id
+	left outer join tag.catalogo cat on cat.cnpj_cpf = clie.cnpj_cpf
+	left outer join tag.cidade cid on cid.codigo = ide.code_city_local_event 
+	left outer join tag.insurance_status iss on iss.id = ide.id_status
+	left outer join tag.insurance_status isss on isss.id = ide.id_status_third
 
---------------------------------------------------------------------------------------------------
-
-from tag.invoice i
-left join tag.representante r on r.codigo = i.id_unity
-left join tag.catalogo cata on cata.cnpj_cpf = r.cnpj_cpf
-left join tag.vendedor v on v.codigo = i.id_consultant
-left join tag.insurance_reg_set irs on irs.id = i.id_set
-left join tag.insurance_registration ir on ir.id = irs.parent
-left join tag.cliente clie on clie.codigo = ir.customer_id
-left join tag.catalogo cat on cat.cnpj_cpf = clie.cnpj_cpf
-inner join tag.invoice_item ii on i.id = ii.parent
-inner join tag.titulo_movimento t on ii.id_title_moviment = t.id_titulo_movimento
-inner join tag.aplicacao_recurso_financeiro a on a.codigo = t.codigo_aplicacao_recurso_fin and a.codigo_empresa = t.codigo_empresa
-inner join tag.grupo_aplic_rec_financeiro g on a.codigo_grupo = g.codigo and a.codigo_empresa = g.codigo_empresa
-left outer join (
-	select tb.ponteiro,
-	coalesce(sum(tb.valor_baixa),0) as valor_baixa,
-	max(tb.data_lancamento) as data_baixa,
-	min(sd.entra_fluxo_caixa) as entra_fluxo_caixa
-	from tag.titulo_movimento tb
-	inner join tag.situacao_documento sd on sd.codigo = tb.codigo_situacao_documento
-	where tb.historico not in(1,5)
-	group by tb.ponteiro
-) as bx on bx.ponteiro = t.ponteiro
+where ide.id_kind_event in (6,7,8,9,13)
+and cast(ide.date_event as date) > date('2025-08-01')
